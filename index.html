@@ -1,3 +1,7 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vihiga FSC, Agrovet and FFS Map</title>
 <style>
 /* Layout: a framed map sheet (title and logo, north arrow, scale, credits inside the frame) with filters above and live counts beside it. Colour: navy accent; tier colours carry meaning only. */
@@ -52,6 +56,12 @@ svg#map{display:block;width:100%;height:auto}
 .kv span:first-child{color:var(--muted)}
 .note{font-size:.78rem;color:var(--muted);line-height:1.5}
 text{font-family:var(--font)}
+svg#map{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+.tip.sheet-tip{position:fixed;pointer-events:auto;left:0!important;right:0;top:auto!important;bottom:0;max-width:none;max-height:42vh;overflow:auto;font-size:.9rem;line-height:1.5;padding:14px 48px calc(14px + env(safe-area-inset-bottom,0px)) 16px;border-radius:14px 14px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.22);z-index:20}
+.tipx{position:absolute;top:4px;right:4px;width:36px;height:36px;border:0;background:transparent;color:var(--fg);font-size:1.5rem;line-height:1;cursor:pointer;border-radius:8px}
+@media(max-width:820px){.wrap{gap:12px}.main{order:1}.controls{order:2}#matrix{order:3}}
+@media(max-width:560px){#matrix table{font-size:.72rem}#matrix th,#matrix td{padding:3px 4px!important}.zoom button{width:40px;height:40px}.title{padding:4px 8px 4px 5px;gap:6px;top:6px;left:6px;max-width:calc(100% - 64px)}.title img{width:24px;height:24px}.title h1{font-size:.68rem}.title p{display:none}.zoom{top:6px;right:6px}.north{top:142px;width:20px;right:14px}.scale{bottom:auto;top:auto;left:8px}button.chip{padding:7px 12px}.seg button{padding:8px 10px}}
+.lgh{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:9px 0 4px}.lgh:first-child{margin-top:0}.lg{display:flex;flex-wrap:wrap;gap:3px 12px}.li{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;color:var(--fg);white-space:nowrap}
 </style>
 <div class="wrap">
  <div class="controls">
@@ -78,7 +88,7 @@ text{font-family:var(--font)}
    <div class="panel"><div class="big" id="cnt">0</div><div class="note" id="cntLab" style="margin-top:4px">FSCs shown</div></div>
    <div class="panel" id="stats"></div>
    <div class="panel" id="legend"></div>
-   <p class="note" style="margin:0">Drag the map to pan; + and − zoom. Hover or tap a point for details. Each Farmer Field School (FFS) is shown by one point. FSC, agrovet and farmer names and phone numbers are left out.</p>
+   <p class="note" style="margin:0">Drag the map to pan; + and − zoom. Hover over (computer) or tap (phone) a point for details; pinch to zoom. Each Farmer Field School (FFS) is shown by one point. FSC, agrovet and farmer names and phone numbers are left out.</p>
   </aside>
  </div>
  <div class="panel" id="matrix" style="overflow-x:auto"></div>
@@ -101,7 +111,7 @@ const TIERL={1:"Tier 1 · Strong",2:"Tier 2 · Developing",3:"Tier 3 · Needs su
 const STAT={year_round:"Year-round",seasonal:"Seasonal",dormant:"Dormant / closed"};
 const lon0=34.515,lon1=34.945,lat0=-0.075,lat1=0.22,W=1000,H=W*(lat1-lat0)/(lon1-lon0);
 const X=l=>(l-lon0)/(lon1-lon0)*W, Y=l=>H-(l-lat0)/(lat1-lat0)*H;
-const st={vcs:new Set([0,1,2]),tiers:new Set([1,2,3]),subs:new Set(Object.keys(SUBL)),by:"tier",size:true,lab:true,show:"all",lic:"all"};
+const st={sel:null,vcs:new Set([0,1,2]),tiers:new Set([1,2,3]),subs:new Set(Object.keys(SUBL)),by:"tier",size:true,lab:true,show:"all",lic:"all"};
 const licOk=a=>{const v=a.slice(5,9);return st.lic==="all"||(st.lic==="full"?v.every(x=>x==="yes"):v.some(x=>x==="no"))};
 const grPath=(x,y,d)=>`M${x} ${y-d}L${x+d*.95} ${y+d*.75}L${x-d*.95} ${y+d*.75}Z`;
 const agPath=(x,y,d)=>`M${x} ${y-d}L${x+d} ${y}L${x} ${y+d}L${x-d} ${y}Z`;
@@ -134,8 +144,9 @@ function draw(){
   s+=`<path data-a="${i}" d="${agPath(X(a[1]),Y(a[0]),d)}" fill="var(--ag)" stroke="var(--ag-edge)" stroke-width="${1.6/z}" stroke-linejoin="miter"/>`})}
  let gsh=0,gm=0,gw=0,gy=0;const gv=[0,0,0],gg=[0,0,0],gsel=[];
  if(showG){GRP.forEach((g,i)=>{if(!st.subs.has(g[2])||!st.vcs.has(g[5]))return;gsh++;gm+=g[6];gw+=g[11][0];gy+=g[12];gv[g[5]]+=g[6];gg[g[5]]++;gsel.push(g);
-  const d=5/z;
+  const d=7.5/z;
   s+=`<path data-g="${i}" d="${grPath(X(g[1]),Y(g[0]),d)}" fill="${VCC[g[5]]}" stroke="var(--dot-edge)" stroke-width="${1.1/z}" stroke-linejoin="round"/>`})}
+ if(st.sel){const q=st.sel[0]==="g"?GRP[st.sel[1]]:st.sel[0]==="a"?AG[st.sel[1]]:DATA[st.sel[1]];if(q)s+=`<circle cx="${X(q[1])}" cy="${Y(q[0])}" r="${15/z}" fill="none" stroke="var(--fg)" stroke-width="${2.2/z}" stroke-dasharray="${5/z} ${3/z}" pointer-events="none"/>`}
  svg.innerHTML=s;
  document.getElementById("cnt").textContent=(showF?shown:0)+(showA?ash:0)+(showG?gsh:0);
  {const parts=[];if(showF)parts.push(shown+" FSCs");if(showA)parts.push(ash+" agrovets");if(showG)parts.push(gsh+" FFS");document.getElementById("cntLab").textContent=parts.length>1?"points shown: "+parts.join(", "):showF?`of ${DATA.length} FSCs shown`:showA?`of ${AG.length} agrovets shown`:`of ${GRP.length} Farmer Field Schools shown`}
@@ -145,15 +156,19 @@ function draw(){
  const km=view.w/W*(lon1-lon0)*111.2;const nice=[1,2,5,10,20,50].find(v=>v>=km*0.18)||50;
  document.getElementById("scaleLab").textContent=nice+" km";document.getElementById("scaleBar").style.width=(nice/km)*box.clientWidth+"px";
 }
-function legend(){const el=document.getElementById("legend");let h="";const sf=["fsc","both","all"].includes(st.show),sa=["agv","both","all"].includes(st.show),sg=["grp","all"].includes(st.show);
- if(sf){h+='<div class="grp"><span>FSCs (circles) · '+(st.by==="tier"?"tier":"sub-county")+'</span></div>';
- const items=st.by==="tier"?[1,2,3].map(t=>[TIERC[t],TIERL[t]]):Object.keys(SUBL).map(k=>[SUBC[k],SUBL[k]]);
- items.forEach(([c,l])=>h+=`<div class="kv" style="justify-content:flex-start;gap:8px"><span class="sw" style="background:${c}"></span><span style="color:var(--fg)">${l}</span></div>`)}
- if(sa)h+=`<div class="grp" style="${sf?"margin-top:8px":""}"><span>Agrovets (diamonds)</span></div><div class="kv" style="justify-content:flex-start;gap:8px"><svg width="14" height="14" viewBox="-7 -7 14 14"><path d="M0 -6L6 0L0 6L-6 0Z" fill="var(--ag)" stroke="var(--ag-edge)" stroke-width="1"/></svg><span style="color:var(--fg)">Agrovet</span></div>`;
- if(sg)h+=`<div class="grp" style="${sf||sa?"margin-top:8px":""}"><span>Farmer Field Schools (triangles) · value chain</span></div>`+VCL.map((n,k)=>`<div class="kv" style="justify-content:flex-start;gap:8px"><svg width="14" height="14" viewBox="-7 -7 14 14"><path d="M0 -6L5.7 4.5L-5.7 4.5Z" fill="${VCC[k]}" stroke="var(--dot-edge)" stroke-width="1"/></svg><span style="color:var(--fg)">${n}</span></div>`).join("");
- h+='<div style="height:6px"></div>';
- h+=`<div class="kv" style="justify-content:flex-start;gap:8px;margin-top:4px"><span style="display:inline-block;width:20px;border-top:2.5px solid var(--cline)"></span><span style="color:var(--fg)">County boundary</span></div><div class="kv" style="justify-content:flex-start;gap:8px"><span style="display:inline-block;width:20px;border-top:1.7px solid var(--sline)"></span><span style="color:var(--fg)">Sub-county boundary</span></div><div class="kv" style="justify-content:flex-start;gap:8px"><span style="display:inline-block;width:20px;border-top:1px solid var(--wline)"></span><span style="color:var(--fg)">Ward boundary</span></div>`;
- if(st.size&&st.show!=="grp")h+=`<div class="note" style="margin-top:6px">Larger symbol = more farmers ${st.show==="agv"?"reached (by band)":st.show==="fsc"?"served (up to "+fmt(maxF)+")":st.show==="grp"?"in the FFS":"served (FSCs) or reached (agrovets)"}.</div>`;el.innerHTML=h}
+function legend(){const el=document.getElementById("legend");const sf=["fsc","both","all"].includes(st.show),sa=["agv","both","all"].includes(st.show),sg=["grp","all"].includes(st.show);
+ const row=(items)=>`<div class="lg">${items.join("")}</div>`,hd=(s)=>`<div class="lgh">${s}</div>`;
+ const dot=(c,l)=>`<span class="li"><i class="sw" style="background:${c}"></i>${l}</span>`;
+ const tri=(c,l)=>`<span class="li"><svg width="12" height="12" viewBox="-7 -7 14 14"><path d="M0 -6L5.7 4.5L-5.7 4.5Z" fill="${c}" stroke="var(--dot-edge)" stroke-width="1"/></svg>${l}</span>`;
+ const line=(w,c,l)=>`<span class="li"><i style="display:inline-block;width:16px;border-top:${w}px solid ${c}"></i>${l}</span>`;
+ const SH=["Poultry","Fruit trees","Leafy vegetables"];
+ let h="";
+ if(sf)h+=hd("FSCs · "+(st.by==="tier"?"by tier":"by sub-county"))+row((st.by==="tier"?[1,2,3].map(k=>dot(TIERC[k],"Tier "+k)):Object.keys(SUBL).map(k=>dot(SUBC[k],SUBL[k]))));
+ if(sa)h+=hd("Agrovets")+row([`<span class="li"><svg width="12" height="12" viewBox="-7 -7 14 14"><path d="M0 -6L6 0L0 6L-6 0Z" fill="var(--ag)" stroke="var(--ag-edge)" stroke-width="1"/></svg>Agrovet</span>`]);
+ if(sg)h+=hd("Farmer Field Schools")+row(SH.map((n,k)=>tri(VCC[k],n)));
+ h+=hd("Boundaries")+row([line(2.5,"var(--cline)","County"),line(1.7,"var(--sline)","Sub-county"),line(1,"var(--wline)","Ward")]);
+ if(st.size&&(sf||sa))h+=`<div class="note" style="margin-top:6px;font-size:.72rem">Symbol size: farmers ${sf&&sa?"served or reached":sf?"served":"reached"}.</div>`;
+ el.innerHTML=h}
 function chips(){document.getElementById("vcChips").innerHTML=VCL.map((n,k)=>`<button class="chip" data-v="${k}" aria-pressed="${st.vcs.has(k)}"><span class="sw" style="background:${VCC[k]}"></span>${n}</button>`).join("");const t=document.getElementById("tierChips"),u=document.getElementById("subChips");
  t.innerHTML=[1,2,3].map(k=>`<button class="chip" data-t="${k}" aria-pressed="${st.tiers.has(k)}"><span class="sw" style="background:${TIERC[k]}"></span>Tier ${k}</button>`).join("");
  u.innerHTML=Object.keys(SUBL).map(k=>`<button class="chip" data-s="${k}" aria-pressed="${st.subs.has(k)}">${SUBL[k]}</button>`).join("")}
@@ -170,21 +185,40 @@ function zoom(f){const nw=Math.min(W,Math.max(W/12,view.w/f)),nh=nw*H/W,cx=view.
  view.x=Math.min(W-nw,Math.max(0,cx-nw/2));view.y=Math.min(H-nh,Math.max(0,cy-nh/2));view.w=nw;view.h=nh;draw()}
 document.getElementById("zin").onclick=()=>zoom(1.6);document.getElementById("zout").onclick=()=>zoom(1/1.6);
 document.getElementById("zrs").onclick=()=>{view={x:0,y:0,w:W,h:H};draw()};
-let drag=null;
-svg.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false};svg.setPointerCapture(e.pointerId)});
+let drag=null,pinch=null;const ptrs=new Map(),TAP=26;
+const HITSEL="[data-i],[data-a],[data-g]";
+function hit(e){
+ if(e.pointerType==="mouse"){const el=document.elementFromPoint(e.clientX,e.clientY);return el&&el.closest&&el.closest(HITSEL)}
+ let best=null,bd=TAP*TAP;svg.querySelectorAll(HITSEL).forEach(n=>{const r=n.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),d=dx*dx+dy*dy;if(d<bd){bd=d;best=n}});return best}
+function hideTip(){tip.hidden=true;if(st.sel){st.sel=null;draw()}}
+function clampView(){view.w=Math.min(W,Math.max(W/12,view.w));view.h=view.w*H/W;view.x=Math.min(W-view.w,Math.max(0,view.x));view.y=Math.min(H-view.h,Math.max(0,view.y))}
+svg.addEventListener("pointerdown",e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});svg.setPointerCapture(e.pointerId);
+ if(ptrs.size===2){const [p,q]=[...ptrs.values()];pinch={d:Math.hypot(p.x-q.x,p.y-q.y)||1,w:view.w};drag={moved:true};tip.hidden=true;return}
+ drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false}});
 svg.addEventListener("pointermove",e=>{
- if(drag){const k=view.w/svg.clientWidth,dx=(e.clientX-drag.x)*k,dy=(e.clientY-drag.y)*k;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>4)drag.moved=true;
+ if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(pinch&&ptrs.size>=2){const [p,q]=[...ptrs.values()],d=Math.hypot(p.x-q.x,p.y-q.y)||1,r=svg.getBoundingClientRect(),mx=(p.x+q.x)/2,my=(p.y+q.y)/2,ax=view.x+(mx-r.left)/r.width*view.w,ay=view.y+(my-r.top)/r.height*view.h,fx=(mx-r.left)/r.width,fy=(my-r.top)/r.height;
+  view.w=pinch.w*pinch.d/d;view.w=Math.min(W,Math.max(W/12,view.w));view.h=view.w*H/W;view.x=ax-fx*view.w;view.y=ay-fy*view.h;clampView();draw();return}
+ if(drag&&drag.x!==undefined){const k=view.w/svg.clientWidth,dx=(e.clientX-drag.x)*k,dy=(e.clientY-drag.y)*k;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>(e.pointerType==="mouse"?4:8))drag.moved=true;
   if(drag.moved){view.x=Math.min(W-view.w,Math.max(0,drag.vx-dx));view.y=Math.min(H-view.h,Math.max(0,drag.vy-dy));draw();tip.hidden=true;return}}
- const el=document.elementFromPoint(e.clientX,e.clientY);const c=el&&el.closest&&el.closest("[data-i],[data-a],[data-g]");if(!c){tip.hidden=true;return}showTip(c,e)});
-svg.addEventListener("pointerup",e=>{const was=drag&&drag.moved;drag=null;if(!was){const el=document.elementFromPoint(e.clientX,e.clientY);const c=el&&el.closest&&el.closest("[data-i],[data-a],[data-g]");if(c)showTip(c,e)}});
-svg.addEventListener("pointerleave",()=>{tip.hidden=true});
-function showTip(c,e){const b=box.getBoundingClientRect();
+ if(e.pointerType!=="mouse")return;
+ const c=hit(e);if(!c){tip.hidden=true;return}showTip(c,e)});
+function endPtr(e){const was=drag&&drag.moved;ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;
+ if(ptrs.size>0){drag={moved:true};return}
+ drag=null;if(was||e.type==="pointercancel")return;
+ const c=hit(e);if(c)showTip(c,e);else if(e.pointerType!=="mouse")hideTip()}
+svg.addEventListener("pointerup",endPtr);svg.addEventListener("pointercancel",endPtr);
+svg.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")tip.hidden=true});
+tip.addEventListener("click",e=>{if(e.target.closest(".tipx"))hideTip()});
+function showTip(c,e){const b=box.getBoundingClientRect(),touch=e.pointerType!=="mouse";
  if(c.dataset.g!==undefined){const g=GRP[+c.dataset.g];
-  tip.innerHTML=`<b>${g[13]}</b>Farmer Field School · ${VCL[g[5]]}<br>${g[4].join(", ")} · ${WARD[g[3]]}, ${SUBL[g[2]]}<br>${g[6]} members: ${g[11][0]} women (${Math.round(100*g[11][0]/g[6])}%), ${g[11][1]} men<br>Youth (18-35): ${g[12]}<br>Nearest FSC: ${g[7]} km (${TIERL[g[9]].split(" · ")[0]}) · ${g[10]} FSC${g[10]===1?"":"s"} within 2 km<br>Nearest agrovet: ${g[8]} km`}
+  tip.innerHTML=`<b>${g[13]}</b>Farmer Field School · ${VCL[g[5]]}<br>${g[4].join(", ")} · ${WARD[g[3]]}, ${SUBL[g[2]]}<br>${g[6]} members: ${g[11][0]} women (${Math.round(100*g[11][0]/g[6])}%), ${g[11][1]} men<br>Youth (18-35): ${g[12]}<br>Nearest FSC: ${g[7]} km (${TIERL[g[9]].split(" · ")[0]}) · ${g[10]} FSC${g[10]===1?"":"s"} within 2 km<br>Nearest agrovet: ${g[8]} km`;if(touch)st.sel=["g",+c.dataset.g]}
  else if(c.dataset.a!==undefined){const a=AG[+c.dataset.a],yn=v=>v==="yes"?"Yes":v==="no"?"No":"–";
-  tip.innerHTML=`<b>Agrovet · ${WARD[a[3]]}</b>${SUBL[a[2]]} sub-county<br>${a[4]}<br>Farmers reached: ${FB[a[9]][1]}<br>${LICN.map((n,k)=>n+": "+yn(a[5+k])).join(" · ")}`}
+  tip.innerHTML=`<b>Agrovet · ${WARD[a[3]]}</b>${SUBL[a[2]]} sub-county<br>${a[4]}<br>Farmers reached: ${FB[a[9]][1]}<br>${LICN.map((n,k)=>n+": "+yn(a[5+k])).join(" · ")}`;if(touch)st.sel=["a",+c.dataset.a]}
  else{const r=DATA[+c.dataset.i];
- tip.innerHTML=`<b>${WARD[r[3]]}</b>${SUBL[r[2]]} sub-county<br>${TIERL[r[4]]} · score ${r[5]}<br>${fmt(r[6])} farmers served<br>${STAT[r[7]]||r[7]} · ${r[8]==="new"?"new, not on register":"on AGRA register"}`}
+ tip.innerHTML=`<b>${WARD[r[3]]}</b>${SUBL[r[2]]} sub-county<br>${TIERL[r[4]]} · score ${r[5]}<br>${fmt(r[6])} farmers served<br>${STAT[r[7]]||r[7]} · ${r[8]==="new"?"new, not on register":"on AGRA register"}`;if(touch)st.sel=["i",+c.dataset.i]}
+ tip.classList.toggle("sheet-tip",touch);
+ if(touch){tip.insertAdjacentHTML("afterbegin",'<button class="tipx" aria-label="Close details">×</button>');tip.hidden=false;tip.style.left="";tip.style.top="";draw();return}
  tip.hidden=false;let x=e.clientX-b.left+14,y=e.clientY-b.top+14;if(x+270>b.width)x=e.clientX-b.left-270;if(y+120>b.height)y=e.clientY-b.top-110;tip.style.left=Math.max(4,x)+"px";tip.style.top=Math.max(4,y)+"px"}
 function matrix(on,sel){const el=document.getElementById("matrix");el.hidden=!on;if(!on){return}
  const subs=Object.keys(SUBL).filter(k=>st.subs.has(k));
