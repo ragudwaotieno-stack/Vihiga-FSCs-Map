@@ -216,7 +216,7 @@ function showTip(c,e){const b=box.getBoundingClientRect(),touch=e.pointerType!==
  else if(c.dataset.a!==undefined){const a=AG[+c.dataset.a],yn=v=>v==="yes"?"Yes":v==="no"?"No":"–";
   tip.innerHTML=`<b>Agrovet · ${WARD[a[3]]}</b>${SUBL[a[2]]} sub-county<br>${a[4]}<br>Farmers reached: ${FB[a[9]][1]}<br>${LICN.map((n,k)=>n+": "+yn(a[5+k])).join(" · ")}`;if(touch)st.sel=["a",+c.dataset.a]}
  else{const r=DATA[+c.dataset.i];
- tip.innerHTML=`<b>${WARD[r[3]]}</b>${SUBL[r[2]]} sub-county<br>${TIERL[r[4]]} · score ${r[5]}<br>${fmt(r[6])} farmers served<br>${STAT[r[7]]||r[7]} · ${r[8]==="new"?"new, not on register":"on AGRA register"}`;if(touch)st.sel=["i",+c.dataset.i]}
+ tip.innerHTML=`<b>${WARD[r[3]]}</b>${SUBL[r[2]]} sub-county<br>${TIERL[r[4]]} · score ${r[5]}<br>${fmt(r[6])} farmers served<br>${STAT[r[7]]||r[7]}${r[8]==="new"?" · new find":""}`;if(touch)st.sel=["i",+c.dataset.i]}
  tip.classList.toggle("sheet-tip",touch);
  if(touch){tip.insertAdjacentHTML("afterbegin",'<button class="tipx" aria-label="Close details">×</button>');tip.hidden=false;tip.style.left="";tip.style.top="";draw();return}
  tip.hidden=false;let x=e.clientX-b.left+14,y=e.clientY-b.top+14;if(x+270>b.width)x=e.clientX-b.left-270;if(y+120>b.height)y=e.clientY-b.top-110;tip.style.left=Math.max(4,x)+"px";tip.style.top=Math.max(4,y)+"px"}
